@@ -1,6 +1,5 @@
-Require Import ZArith PArith Floats.
-Require Import Lia.
-Require Import Relations Classes.EquivDec Morphisms.
+Require Export ZArith PArith Lia.
+Require Export Relations Classes.EquivDec.
 
 Open Scope Z.
 

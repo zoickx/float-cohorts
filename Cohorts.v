@@ -1,6 +1,4 @@
-Require Import ZArith PArith Floats.
-Require Import Lia.
-Require Import Relations Classes.EquivDec Morphisms.
+Require Import Morphisms.
 
 Require Import FloatCohorts.Option FloatCohorts.FloatPair.
 
@@ -288,6 +286,3 @@ Proof.
   rewrite H.
   reflexivity.
 Qed.
-
-
-  
