@@ -2,5 +2,11 @@
 *.glob
 *.aux
 *.cache
-Makefile.conf
+*.vok
+*.vos
+
 .coqdeps.d
+
+CoqMakefile
+CoqMakefile.conf
+.CoqMakefile.d
