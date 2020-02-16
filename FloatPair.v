@@ -1,5 +1,5 @@
-Require Export ZArith PArith Lia.
 Require Export Relations Classes.EquivDec.
+Require Import FloatCohorts.Arith.
 
 Open Scope Z.
 
@@ -13,18 +13,6 @@ Definition fp_equiv_def : relation float_pair :=
     or
       ((e2 <= e1) /\ (Z.pos m2 = (Z.pos m1) * 2 ^ (e1 - e2)))
       ((e1 <= e2) /\ (Z.pos m1 = (Z.pos m2) * 2 ^ (e2 - e1))).
-
-Lemma Zpow_divide (b p1 p2 : Z) :
-  0 < b ->
-  0 <= p1 <= p2 ->
-  (b ^ p1 | b ^ p2).
-Proof.
-  intros B P.
-  rewrite <-Z.mod_divide by (apply Z.pow_nonzero; lia).
-  replace p2 with ((p2 - p1) + p1) by lia.
-  rewrite Z.pow_add_r by lia.
-  apply Z_mod_mult.
-Qed.
 
 Instance fp_equiv : Equivalence fp_equiv_def.
 Proof.

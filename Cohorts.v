@@ -1,27 +1,6 @@
 Require Import Morphisms.
 
-Require Import FloatCohorts.Option FloatCohorts.FloatPair.
-
-Definition div2_opt (p : positive) : option positive :=
-  match p with
-  | xO p' => Some p'
-  | _ => None
-  end.
-
-Lemma div2_opt_correct (p d : positive) :
-  div2_opt p = Some d <-> p = (d * 2)%positive.
-Proof.
-  split; intros.
-  - destruct p; inversion H.
-    cbn.
-    rewrite Pos.mul_comm.
-    reflexivity.
-  -
-    rewrite H.
-    cbn.
-    rewrite Pos.mul_comm.
-    reflexivity.
-Qed.
+From FloatCohorts Require Import Option Arith FloatPair.
 
 Definition dec_e (fp : float_pair) : float_pair :=
   let '(m, e) := (FPnum fp, FPexp fp) in
@@ -275,7 +254,7 @@ Proof.
   - rewrite dec_e_by_equiv. reflexivity.
 Qed.
 
-Lemma shift_e_by_proper (fp1 fp2 : float_pair) (de1 de2 : Z) :
+Lemma shift_e_success_proper (fp1 fp2 : float_pair) (de1 de2 : Z) :
   fp1 === fp2 ->
   de1 === de2 ->
   is_Some (shift_e fp1 de1) -> is_Some (shift_e fp2 de2) ->
@@ -286,3 +265,22 @@ Proof.
   rewrite H.
   reflexivity.
 Qed.
+
+Lemma set_e_equiv (fp : float_pair) (e : Z) :
+  is_Some (set_e fp e) ->
+  set_e fp e === Some fp.
+Proof.
+  apply shift_e_equiv.
+Qed.
+
+Lemma set_e_success_proper (fp1 fp2 : float_pair) (e1 e2 : Z) :
+  fp1 === fp2 ->
+  e1 === e2 ->
+  is_Some (set_e fp1 e1) -> is_Some (set_e fp2 e2) ->
+  set_e fp1 e1 === set_e fp2 e2.
+Admitted.
+
+
+  
+  
+
