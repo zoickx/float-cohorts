@@ -141,48 +141,6 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma pos_iter_some_init
-      {A : Type}
-      (f : option A -> option A)
-      (init : option A)
-      (p : positive)
-  :
-    f None = None ->
-    is_Some (Pos.iter f init p) ->
-    is_Some init.
-Proof.
-  intros.
-  destruct init; try constructor.
-  contradict H0.
-  apply not_Some_is_None.
-  apply Pos.iter_invariant.
-  intros.
-  destruct x.
-  inversion H0.
-  rewrite H; constructor.
-  constructor.
-Qed.
-
-Lemma pos_iter_some_inv
-      {A : Type}
-      (f : option A -> option A)
-      (init : option A)
-      (p : positive)
-  :
-    f None = None ->
-    is_Some (Pos.iter f init p) ->
-    forall p', (Pos.le p' p) -> is_Some (Pos.iter f init p').
-Proof.
-  intros.
-  destruct (Pos.eq_dec p p');
-    [subst; assumption | assert (p' < p)%positive by lia; clear H1 n].
-  assert (exists dp, p = dp + p')%positive by (exists (p - p')%positive; lia).
-  destruct H1 as [dp H1].
-  rewrite H1 in *; clear H1 p.
-  rewrite Pos.iter_add in H0.
-  apply pos_iter_some_init in H0; assumption.
-Qed.
-
 Lemma dec_e_by_equiv (fp : float_pair) (de : positive) :
   dec_e_by fp de === fp.
 Proof.
@@ -279,6 +237,8 @@ Lemma set_e_success_proper (fp1 fp2 : float_pair) (e1 e2 : Z) :
   is_Some (set_e fp1 e1) -> is_Some (set_e fp2 e2) ->
   set_e fp1 e1 === set_e fp2 e2.
 Admitted.
+
+  
 
 
   
