@@ -65,12 +65,10 @@ Qed.
 
 (* see [inc_e_not_proper] *)
 (* however, as long as it succeeds, results are guaranteed to equivalent *)
-Lemma inc_e_success_proper (fp1 fp2 : float_pair) :
-  fp1 === fp2 ->
-  is_Some (inc_e fp1) -> is_Some (inc_e fp2) ->
-  inc_e fp1 === inc_e fp2.
+Instance inc_e_proper_if_Some :
+  Proper (equiv ==> equiv_if_Some) inc_e.
 Proof.
-  intros EQ S1 S2.
+  intros fp1 fp2 EQ S1 S2.
   destruct fp1 as [m1 e1], fp2 as [m2 e2].
   destruct EQ as [EQ | EQ]; destruct EQ as [E M].
   -
@@ -188,15 +186,12 @@ Proof.
   inversion C.
 Qed.
 
-Lemma inc_e_by_success_proper (fp1 fp2 : float_pair) (de1 de2 : positive) :
-  fp1 === fp2 ->
-  de1 === de2 ->
-  is_Some (inc_e_by fp1 de1) -> is_Some (inc_e_by fp2 de2) ->
-  inc_e_by fp1 de1 === inc_e_by fp2 de2.
+Instance inc_e_by_proper_if_some :
+  Proper (equiv ==> equiv ==> equiv_if_Some) inc_e_by.
 Proof.
-  intros.
+  intros fp1 fp2 FPE de1 de2 DEE S1 S2.
   repeat rewrite inc_e_by_equiv; try assumption.
-  rewrite H.
+  rewrite FPE.
   reflexivity.
 Qed.
 
@@ -212,15 +207,12 @@ Proof.
   - rewrite dec_e_by_equiv. reflexivity.
 Qed.
 
-Lemma shift_e_success_proper (fp1 fp2 : float_pair) (de1 de2 : Z) :
-  fp1 === fp2 ->
-  de1 === de2 ->
-  is_Some (shift_e fp1 de1) -> is_Some (shift_e fp2 de2) ->
-  shift_e fp1 de1 === shift_e fp2 de2.
+Instance shift_e_proper_if_Some :
+  Proper (equiv ==> equiv ==> equiv_if_Some) shift_e.
 Proof.
-  intros.
+  intros fp1 fp2 FPE de1 de2 DEE S1 S2.
   repeat rewrite shift_e_equiv; try assumption.
-  rewrite H.
+  rewrite FPE.
   reflexivity.
 Qed.
 
@@ -231,16 +223,11 @@ Proof.
   apply shift_e_equiv.
 Qed.
 
-Lemma set_e_success_proper (fp1 fp2 : float_pair) (e1 e2 : Z) :
-  fp1 === fp2 ->
-  e1 === e2 ->
-  is_Some (set_e fp1 e1) -> is_Some (set_e fp2 e2) ->
-  set_e fp1 e1 === set_e fp2 e2.
-Admitted.
-
-  
-
-
-  
-  
-
+Instance set_e_proper_if_Some :
+  Proper (equiv ==> equiv ==> equiv_if_Some) set_e.
+Proof.
+  intros fp1 fp2 FPE de1 de2 DEE S1 S2.
+  repeat rewrite set_e_equiv; try assumption.
+  rewrite FPE.
+  reflexivity.
+Qed.

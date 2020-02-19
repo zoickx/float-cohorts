@@ -1,5 +1,11 @@
 Require Import Relations Classes.EquivDec Morphisms.
 
+Inductive is_Some {A : Type} : (option A) -> Prop :=
+| is_Some_intro : forall a, is_Some (Some a).
+
+Inductive is_None {A : Type} : (option A) -> Prop :=
+| is_None_intro : is_None None.
+
 Inductive option_equiv {A : Type} {EqA : relation A} `{Equivalence A EqA}
   : relation (option A) :=
 | equiv_Some : forall a1 a2, a1 === a2 -> option_equiv (Some a1) (Some a2)
@@ -26,6 +32,10 @@ Proof.
     reflexivity.
 Qed.
 
+Definition equiv_if_Some {A : Type} {EqA : relation A} `{Equivalence A EqA}
+  : relation (option A) :=
+  fun oa1 oa2 => is_Some oa1 -> is_Some oa2 -> oa1 === oa2.
+
 Instance Some_proper {A : Type} {EqA : relation A} `{Equivalence A EqA} :
   Proper (equiv ==> equiv) (@Some A).
 Proof.
@@ -42,12 +52,6 @@ Proof.
   inversion E.
   assumption.
 Qed.
-
-Inductive is_Some {A : Type} : (option A) -> Prop :=
-| is_Some_intro : forall a, is_Some (Some a).
-
-Inductive is_None {A : Type} : (option A) -> Prop :=
-| is_None_intro : is_None None.
 
 Lemma not_Some_is_None {A : Type} (oa : option A) :
   ~ (is_Some oa) <-> is_None oa.
