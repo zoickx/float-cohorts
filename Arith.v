@@ -1,4 +1,4 @@
-Require Export ZArith PArith Lia.
+Require Export ZArith PArith Lia Floats.SpecFloat.
 
 Open Scope Z.
 
@@ -34,3 +34,7 @@ Proof.
   rewrite Z.pow_add_r by lia.
   apply Z_mod_mult.
 Qed.
+
+Lemma digits2_pos_redundant (p : positive) :
+  digits2_pos p = Pos.size p.
+Proof. reflexivity. Qed.

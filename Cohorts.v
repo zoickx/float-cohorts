@@ -1,5 +1,4 @@
 Require Import Morphisms.
-
 From FloatCohorts Require Import Option Arith FloatPair.
 
 Definition dec_e (fp : float_pair) : float_pair :=
