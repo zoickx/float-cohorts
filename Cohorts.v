@@ -1,5 +1,8 @@
 Require Import Morphisms.
-From FloatCohorts Require Import Option Arith FloatPair.
+From FloatCohorts Require Import Tactics Option Arith FloatPair.
+
+Definition digits_m (fp : float_pair) : positive :=
+  Pos.size (FPnum fp).
 
 Definition dec_e (fp : float_pair) : float_pair :=
   let '(m, e) := (FPnum fp, FPexp fp) in
@@ -13,7 +16,7 @@ Definition inc_e (fp : float_pair) : option float_pair :=
   end.
 
 Definition dec_e_by (fp : float_pair) (de : positive) : float_pair :=
-   Pos.iter dec_e fp de.
+  Pos.iter dec_e fp de.
 
 Definition inc_e_by (fp : float_pair) (de : positive) : option float_pair :=
   Pos.iter (RingMicromega.map_option inc_e) (Some fp) de.
@@ -215,8 +218,8 @@ Definition dec_digits_m_by := inc_e_by.
 Definition shift_digits_m (fp : float_pair) (ddm : Z) : option float_pair :=
   shift_e fp (- ddm).
 
-Definition set_digits_m (fp : float_pair) (dm : Z) :=
-  shift_digits_m fp (dm - Z.pos (Pos.size (FPnum fp))).
+Definition set_digits_m (fp : float_pair) (dm : positive) :=
+  shift_digits_m fp (Z.pos dm - Z.pos (digits_m fp)).
 
 Lemma inc_digits_m_equiv (fp : float_pair) :
   inc_digits_m fp === fp.
@@ -265,7 +268,7 @@ Proof.
   assumption.
   inversion DE; reflexivity.
 Qed.
-Lemma set_digits_m_equiv (fp : float_pair) (dm : Z) :
+Lemma set_digits_m_equiv (fp : float_pair) (dm : positive) :
   is_Some (set_digits_m fp dm) ->
   set_digits_m fp dm === Some fp.
 Proof. apply shift_e_equiv. Qed.
@@ -277,4 +280,149 @@ Proof.
   unfold set_digits_m.
   repeat rewrite shift_digits_m_equiv; try assumption.
   rewrite FE; reflexivity.
+Qed.
+
+
+
+
+
+Lemma exponent_unique (fp1 fp2 : float_pair) :
+  FPexp fp1 = FPexp fp2 ->
+  fp1 === fp2 ->
+  fp1 = fp2.
+Proof.
+  destruct fp1 as [m1 e1], fp2 as [m2 e2].
+  cbn.
+  intros H E.
+  subst.
+  rewrite Z.sub_diag in *.
+  cbn in *.
+  repeat rewrite Pos.mul_1_r in *.
+  destruct E as [[H1 H2] | [H1 H2]].
+  all: inversion H2; subst; reflexivity.
+Qed.
+
+Lemma digits_m_unique (fp1 fp2 : float_pair) :
+  digits_m fp1 = digits_m fp2 ->
+  fp1 === fp2 ->
+  fp1 = fp2.
+Proof.
+  intros.
+  destruct (Z.eq_dec (FPexp fp1) (FPexp fp2)) as [| NE];
+    [apply exponent_unique; assumption |].
+  destruct fp1 as [m1 e1], fp2 as [m2 e2].
+  cbn in *.
+  destruct H0 as [[E M] | [E M]].
+  -
+    remember (e1 - e2) as ed.
+    destruct ed; try lia.
+    replace e1 with (e2 + Z.pos p) in * by lia.
+    clear Heqed E NE.
+
+    break_match; inversion M; clear M.
+    rewrite <-Pos2Z.inj_pow in Heqz.
+    inversion Heqz; clear Heqz.
+    rewrite <-H2 in H1.
+    rewrite H1 in H.
+    rewrite pos_size_mul_pow_two in H.
+    lia.
+  -
+    remember (e2 - e1) as ed.
+    destruct ed; try lia.
+    replace e2 with (e1 + Z.pos p) in * by lia.
+    clear Heqed E NE.
+    
+    break_match; inversion M; clear M.
+    rewrite <-Pos2Z.inj_pow in Heqz.
+    inversion Heqz; clear Heqz.
+    rewrite <-H2 in H1.
+    rewrite H1 in H.
+    rewrite pos_size_mul_pow_two in H.
+    lia.
+Qed.
+
+Lemma mantissa_unique (fp1 fp2 : float_pair) :
+  FPnum fp1 = FPnum fp2 ->
+  fp1 === fp2 ->
+  fp1 = fp2.
+Proof.
+  intros.
+  apply digits_m_unique.
+  unfold digits_m.
+  rewrite H; reflexivity.
+  assumption.
+Qed.
+
+Lemma equiv_neq_m (fp1 fp2 : float_pair) :
+  fp1 === fp2 ->
+  (FPnum fp1 < FPnum fp2)%positive ->
+  FPexp fp1 > FPexp fp2.
+Proof.
+  intros.
+  destruct fp1 as (m1, e1), fp2 as (m2, e2).
+  cbn in *.
+  destruct H as [[E M] | [E M]].
+  -
+    break_match; inversion M.
+    destruct (e1 - e2) eqn:A; lia.
+  -
+    exfalso.
+    break_match; try lia.
+    inversion M.
+    rewrite H1 in H0.
+    clear - H0.
+    induction p; lia.
+Qed.
+
+Lemma equiv_neq_e (fp1 fp2 : float_pair) :
+  fp1 === fp2 ->
+  FPexp fp1 < FPexp fp2 ->
+  (FPnum fp1 > FPnum fp2)%positive.
+Proof.
+  intros.
+  destruct fp1 as (m1, e1), fp2 as (m2, e2).
+  cbn in *.
+  destruct H as [[E M] | [E M]].
+  -
+    break_match; inversion M.
+    destruct (e1 - e2) eqn:A; lia.
+  -
+    break_match; inversion M.
+    enough (1 < 2 ^ (e2 - e1)) by nia.
+    destruct (e2 - e1) eqn:A; try lia.
+    clear.
+    rename p0 into p.
+    rewrite <-(Z.pow_1_l (Z.pos p)) by lia.
+    apply Z.pow_lt_mono_l; lia.
+Qed.
+
+Lemma equiv_neq_m_size (fp1 fp2 : float_pair) :
+  fp1 === fp2 ->
+  (digits_m fp1 < digits_m fp2)%positive ->
+  FPexp fp1 > FPexp fp2.
+Proof.
+  intros.
+  apply pos_size_monotone_inv in H0.
+  apply equiv_neq_m; assumption.
+Qed.
+
+Lemma equiv_neq_e_size (fp1 fp2 : float_pair) :
+  fp1 === fp2 ->
+  FPexp fp1 < FPexp fp2 ->
+  (digits_m fp1 > digits_m fp2)%positive.
+Proof.
+  intros.
+  destruct (Pos.eq_dec (digits_m fp1) (digits_m fp2))
+    as [EQ | NEQ].
+  -
+    exfalso.
+    apply digits_m_unique in EQ; [| assumption].
+    subst.
+    lia.
+  -
+    apply equiv_neq_e in H0; [| assumption].
+    apply Pos.gt_lt, Pos.lt_le_incl in H0.
+    apply pos_size_monotone in H0.
+    unfold digits_m in *.
+    lia.
 Qed.
