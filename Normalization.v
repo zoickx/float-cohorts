@@ -1,5 +1,7 @@
 Require Import Morphisms Coq.Floats.SpecFloat.
-From FloatCohorts Require Import Option Arith FloatPair Cohorts.
+From FloatCohorts Require Import Option Arith FloatPair Cohorts Tactics.
+
+Open Scope Z.
 
 Section natural_normalization.
   
@@ -69,10 +71,8 @@ Section IEEE754_normalization.
 
   Variable prec emax : Z.
   Let emin := emin emax prec.
+  Hypothesis prec_gt_0 : 0 < prec.
   Hypothesis Hmax : prec < emax.
-  (*
-  Hypothesis prec_gt_0 : FLX.Prec_gt_0 prec.
-   *)
 
   Definition normal_pair (fp : float_pair) :=
     let '(m, e) := (FPnum fp, FPexp fp) in
@@ -107,7 +107,7 @@ Section IEEE754_normalization.
     | None => None
     | Some f1 => if Z.pos (Pos.size (FPnum f1)) <=? prec
                 then Some f1
-                else match set_digits_m fp prec with
+                else match set_digits_m fp (Z.to_pos prec) with
                      | None => None
                      | Some f2 => if andb
                                       (emin <=? FPexp f2)
@@ -115,21 +115,6 @@ Section IEEE754_normalization.
                                  then Some f2
                                  else None
                      end
-    end.
-
-  (* stolen from StructTact [https://github.com/uwplse/StructTact] *)
-  Ltac break_match :=
-    match goal with
-      | [ H : context [ match ?X with _ => _ end ] |- _] =>
-        match type of X with
-          | sumbool _ _ => destruct X
-          | _ => destruct X eqn:?
-        end
-      | [ |- context [ match ?X with _ => _ end ] ] =>
-        match type of X with
-          | sumbool _ _ => destruct X
-          | _ => destruct X eqn:?
-        end
     end.
 
   Lemma normalize_pair_equiv (fp : float_pair) :
@@ -162,12 +147,189 @@ Section IEEE754_normalization.
     normal_pair fp2 = true ->
     fp1 === fp2 ->
     fp1 = fp2.
+  Proof.
+    intros.
+    destruct fp1 as (m1, e1), fp2 as (m2, e2).
+    unfold normal_pair in *.
+    rewrite bounded_arithmetic in *.
+    cbn in H, H0.
+    destruct H as [[M1 E1] | [M1 E1]],
+             H0 as [[M2 E2] | [M2 E2]].
+    -
+      apply exponent_unique; try assumption.
+      subst; reflexivity.
+    -
+      subst.
+      apply equiv_neq_m_size in H1; [| cbn; lia].
+      cbn in *; lia.
+    -
+      subst.
+      symmetry in H1.
+      apply equiv_neq_m_size in H1; [| cbn; lia].
+      cbn in *; lia.
+    -
+      apply digits_m_unique; try assumption.
+      cbn.
+      congruence.
+  Qed.
+
+  Lemma normalize_pair_normal (fp : float_pair) :
+    forall fp', normalize_pair fp = Some fp' ->
+    normal_pair fp' = true.
+  Proof.
+    intros.
+    unfold normal_pair.
+    apply bounded_arithmetic.
+    unfold normalize_pair in H.
+    repeat break_match; inversion H; subst; clear H.
+    -
+      apply Z.leb_le in Heqb.
+      apply set_e_res in Heqo.
+      rewrite Heqo; clear Heqo.
+      unfold emin, SpecFloat.emin.
+      lia.
+    -
+      clear Heqo Heqb.
+      apply andb_prop in Heqb0.
+      destruct Heqb0.
+      rewrite Z.leb_le in *.
+      apply set_digits_m_res in Heqo0.
+      unfold digits_m in Heqo0.
+      rewrite Heqo0; clear Heqo0.
+      unfold emin, SpecFloat.emin in *.
+      rewrite Z2Pos.id by assumption.
+      lia.
+  Qed.
+
+  Lemma normalize_pair_impossible (fp : float_pair) :
+    normalize_pair fp = None ->
+    forall fp', fp' === fp ->
+           normal_pair fp' = false.
+  Proof.
+    intros.
+    destruct (normal_pair fp') eqn:NP'; [| reflexivity].
+    exfalso.
+    unfold normal_pair in NP'.
+    apply bounded_arithmetic in NP'.
+    unfold normalize_pair in H.
+    repeat break_match; inversion_clear H.
+    -
+      rewrite Bool.andb_false_iff in *.
+      
+      assert (is_Some (set_e fp emin)) by (rewrite Heqo; constructor).
+      apply set_e_equiv in H.
+      rewrite Heqo in H.
+      inversion H; subst; clear H.
+      apply set_e_res in Heqo.
+      
+      assert (is_Some (set_digits_m fp (Z.to_pos prec))) by (rewrite Heqo0; constructor).
+      apply set_digits_m_equiv in H.
+      rewrite Heqo0 in H.
+      inversion H; subst; clear H.
+      apply set_digits_m_res in Heqo0.
+      
+      (* cleanup *)
+      replace (Pos.size (FPnum f))
+        with (digits_m f)
+        in *
+        by reflexivity. (* poor man's fold 1 *)
+      replace (Pos.size (FPnum fp'))
+        with (digits_m fp')
+        in *
+        by reflexivity. (* poor man's fold 2 *)
+      rename f into f1, f0 into f2, fp' into f.
+      assert (EQ1 : f === f1) by (rewrite H0, H3; reflexivity).
+      assert (EQ2 : f === f2) by (rewrite H0, H4; reflexivity).
+      clear H0 H3 H4 fp.
+      rename Heqo into E1, Heqb into M1, Heqo0 into M2.
+      move f before f1; move f2 before f1.
+      
+      destruct Heqb0 as [E2 | E2]; rewrite Z.leb_gt in *.
+      +
+        destruct NP' as [[M E] | [M E]].
+        *
+          clear - EQ1 M1 E1 M E.
+          enough (FPexp f > FPexp f1) by lia.
+          eapply equiv_neq_m_size.
+          assumption.
+          lia.
+        *
+          clear - EQ2 M2 E2 M E.
+          enough (digits_m f2 > digits_m f)%positive
+            by (rewrite <-M, Pos2Z.id in M2; lia).
+          eapply equiv_neq_e_size.
+          symmetry; assumption.
+          lia.
+      +
+        destruct NP' as [[M E] | [M E]].
+        *
+          clear - EQ1 M1 E1 M E.
+          enough (FPexp f > FPexp f1) by lia.
+          eapply equiv_neq_m_size.
+          assumption.
+          lia.
+        *
+          clear - EQ2 M2 E2 M E.
+          enough (digits_m f > digits_m f2)%positive
+            by (rewrite <-M, Pos2Z.id in M2; lia).
+          eapply equiv_neq_e_size.
+          assumption.
+          lia.
+    -
+      rewrite Z.leb_gt in *.
+
+      assert (is_Some (set_e fp emin)) by (rewrite Heqo; constructor).
+      apply set_e_equiv in H.
+      rewrite Heqo in H.
+      inversion H; subst; clear H.
+      apply set_e_res in Heqo.
+      admit.
+    -
   Admitted.
 
-  Theorem normalize_pair_correct (fp fp' : float_pair) :
-    normalize_pair fp = Some fp'
+  Theorem normalize_pair_spec (fp nfp : float_pair) :
+    normalize_pair fp = Some nfp
     <->
-    (fp === fp' /\ normal_pair fp' = true).
-  Admitted.
+    (fp === nfp /\ normal_pair nfp = true).
+  Proof.
+    split; intros.
+    -
+      split.
+      +
+        assert (SN : is_Some (normalize_pair fp)) by (rewrite H; constructor).
+        apply normalize_pair_equiv in SN.
+        rewrite H in SN.
+        inversion SN.
+        symmetry; assumption.
+      +
+        eapply normalize_pair_normal.
+        eassumption.
+    -
+      destruct H as [EQ N].
+      destruct normalize_pair eqn:NP.
+      +
+        assert (SN : is_Some (normalize_pair fp)) by (rewrite NP; constructor).
+        apply normalize_pair_equiv in SN.
+        rewrite NP in SN.
+        apply normalize_pair_normal in NP.
+        f_equal.
+        apply normal_pair_unique.
+        assumption.
+        assumption.
+        rewrite <-EQ.
+        inversion SN.
+        assumption.
+      +
+        exfalso.
+        apply normalize_pair_impossible with (fp':=nfp) in NP.
+        congruence.
+        symmetry; assumption.
+  Qed.
+  
+        
+      
+      
+    
  
 End IEEE754_normalization.
+
