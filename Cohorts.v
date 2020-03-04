@@ -426,3 +426,211 @@ Proof.
     unfold digits_m in *.
     lia.
 Qed.
+
+
+
+Lemma inc_e_res (fp : float_pair) :
+  forall fp',
+    inc_e fp = Some fp' ->
+    FPexp fp' = FPexp fp + 1.
+Proof.
+  intros.
+  unfold inc_e in H.
+  break_match; inversion H.
+  cbn.
+  reflexivity.
+Qed.
+
+Lemma dec_e_res (fp : float_pair) :
+  FPexp (dec_e fp) = FPexp fp - 1.
+Proof.
+  reflexivity.
+Qed.
+
+Lemma inc_e_by_res (fp : float_pair) (de : positive) :
+  forall fp',
+    inc_e_by fp de = Some fp' ->
+    FPexp fp' = FPexp fp + Z.pos de.
+Proof.
+  unfold inc_e_by.
+  induction de using Pos.peano_ind.
+  -
+    apply inc_e_res.
+  -
+    intros.
+    rewrite Pos.iter_succ in H.
+    destruct (Pos.iter (RingMicromega.map_option inc_e) (Some fp) de);
+      try discriminate.
+    cbn in H.
+    break_match; inversion H.
+
+    assert (T : Some f = Some f) by reflexivity.
+    specialize (IHde f T).
+    cbn in *; lia.
+Qed.
+
+Lemma dec_e_by_res (fp : float_pair) (de : positive) :
+  FPexp (dec_e_by fp de) = FPexp fp - Z.pos de.
+Proof.
+  unfold dec_e_by.
+  induction de using Pos.peano_ind.
+  -
+    apply dec_e_res.
+  -
+    rewrite Pos.iter_succ.
+    rewrite dec_e_res.
+    lia.
+Qed.
+
+Lemma shift_e_res (fp : float_pair) (de : Z) :
+  forall fp',
+    shift_e fp de = Some fp' ->
+    FPexp fp' = FPexp fp + de.
+Proof.
+  intros.
+  destruct de; cbn in *.
+  -
+    inversion H.
+    lia.
+  -
+    apply inc_e_by_res.
+    assumption.
+  -
+    inversion H.
+    rewrite dec_e_by_res.
+    lia.
+Qed.
+        
+Lemma set_e_res (fp : float_pair) (e : Z) :
+  forall fp',
+    set_e fp e = Some fp' ->
+    FPexp fp' = e.
+Proof.
+  intros.
+  unfold set_e in H.
+  apply shift_e_res in H.
+  lia.
+Qed.
+
+Open Scope positive_scope.
+
+Lemma inc_digits_m_res (fp : float_pair) :
+  digits_m (inc_digits_m fp) = digits_m fp + 1.
+Proof.
+  unfold inc_digits_m, dec_e.
+  cbn.
+  replace 2 with (2 ^ 1) by reflexivity.
+  rewrite pos_size_mul_pow_two.
+  reflexivity.
+Qed.
+
+Lemma dec_digits_m_res (fp : float_pair) :
+  forall fp',
+    dec_digits_m fp = Some fp' ->
+    digits_m fp' = digits_m fp - 1.
+Proof.
+  unfold dec_digits_m, inc_e.
+  intros.
+  break_match; inversion H.
+  apply div2_opt_correct in Heqo.
+  cbn.
+  unfold digits_m.
+  rewrite Heqo.
+  replace 2 with (2 ^ 1) by reflexivity.
+  rewrite pos_size_mul_pow_two.
+  lia.
+Qed.
+
+Lemma inc_digits_m_by_res (fp : float_pair) (ddm : positive) :
+  digits_m (inc_digits_m_by fp ddm) = digits_m fp + ddm.
+Proof.
+  unfold inc_digits_m_by, dec_e_by.
+  fold inc_digits_m.
+
+  induction ddm using Pos.peano_ind.
+  -
+    apply inc_digits_m_res.
+  -
+    rewrite Pos.iter_succ.
+    rewrite inc_digits_m_res.
+    lia.
+Qed.
+
+Lemma dec_digits_m_by_res' (fp : float_pair) (ddm : positive) :
+  forall fp',
+    dec_digits_m_by fp ddm = Some fp' ->
+    digits_m fp' + ddm = digits_m fp.
+Proof.
+  unfold dec_digits_m_by, inc_e_by.
+  fold dec_digits_m.
+  induction ddm using Pos.peano_ind.
+  -
+    intros.
+    cbn in *.
+    break_match; inversion H.
+    apply div2_opt_correct in Heqo.
+    unfold digits_m.
+    rewrite Heqo.
+    replace 2 with (2 ^ 1) by reflexivity.
+    rewrite pos_size_mul_pow_two.
+    cbn.
+    lia.
+  -
+    intros.
+    rewrite Pos.iter_succ in H.
+    destruct (Pos.iter (RingMicromega.map_option dec_digits_m) (Some fp) ddm);
+      try discriminate.
+    cbn in H.
+    break_match; inversion H; clear H H1.
+
+    assert (T : Some f = Some f) by reflexivity.
+    specialize (IHddm f T); clear T.
+    unfold digits_m in *.
+    cbn in *.
+    apply div2_opt_correct in Heqo.
+    rewrite Heqo in IHddm.
+    replace 2 with (2 ^ 1) in IHddm by reflexivity.
+    rewrite pos_size_mul_pow_two in IHddm.
+    lia.
+Qed.
+
+Lemma dec_digits_m_by_res (fp : float_pair) (ddm : positive) :
+  forall fp',
+    dec_digits_m_by fp ddm = Some fp' ->
+    digits_m fp' = digits_m fp - ddm.
+Proof.
+  intros.
+  apply dec_digits_m_by_res' in H.
+  lia.
+Qed.
+
+Lemma shift_digits_m_res (fp : float_pair) (ddm : Z) :
+  forall fp',
+    shift_digits_m fp ddm = Some fp' ->
+    Z.pos (digits_m fp') = (Z.pos (digits_m fp) + ddm)%Z.
+Proof.
+  intros.
+  destruct ddm; cbn in *.
+  -
+    congruence.
+  -
+    fold inc_digits_m_by in H.
+    inversion H.
+    rewrite inc_digits_m_by_res.
+    lia.
+  -
+    fold dec_digits_m_by in H.
+    apply dec_digits_m_by_res' in H.
+    rewrite <-Pos2Z.add_pos_neg.
+    lia.
+Qed.
+
+Lemma set_digits_m_res (fp : float_pair) (dm : positive) :
+  forall fp',
+    set_digits_m fp dm = Some fp' ->
+    digits_m fp' = dm.
+Proof.
+  intros.
+  apply shift_digits_m_res in H.
+  lia.
+Qed.
