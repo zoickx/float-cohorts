@@ -396,7 +396,7 @@ Proof.
     apply Z.pow_lt_mono_l; lia.
 Qed.
 
-Lemma equiv_neq_m_size (fp1 fp2 : float_pair) :
+Lemma equiv_neq_m_digits (fp1 fp2 : float_pair) :
   fp1 === fp2 ->
   (digits_m fp1 < digits_m fp2)%positive ->
   FPexp fp1 > FPexp fp2.
@@ -406,7 +406,7 @@ Proof.
   apply equiv_neq_m; assumption.
 Qed.
 
-Lemma equiv_neq_e_size (fp1 fp2 : float_pair) :
+Lemma equiv_neq_e_digits (fp1 fp2 : float_pair) :
   fp1 === fp2 ->
   FPexp fp1 < FPexp fp2 ->
   (digits_m fp1 > digits_m fp2)%positive.

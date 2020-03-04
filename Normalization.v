@@ -160,12 +160,12 @@ Section IEEE754_normalization.
       subst; reflexivity.
     -
       subst.
-      apply equiv_neq_m_size in H1; [| cbn; lia].
+      apply equiv_neq_m_digits in H1; [| cbn; lia].
       cbn in *; lia.
     -
       subst.
       symmetry in H1.
-      apply equiv_neq_m_size in H1; [| cbn; lia].
+      apply equiv_neq_m_digits in H1; [| cbn; lia].
       cbn in *; lia.
     -
       apply digits_m_unique; try assumption.
@@ -250,14 +250,14 @@ Section IEEE754_normalization.
         *
           clear - EQ1 M1 E1 M E.
           enough (FPexp f > FPexp f1) by lia.
-          eapply equiv_neq_m_size.
+          eapply equiv_neq_m_digits.
           assumption.
           lia.
         *
           clear - EQ2 M2 E2 M E.
           enough (digits_m f2 > digits_m f)%positive
             by (rewrite <-M, Pos2Z.id in M2; lia).
-          eapply equiv_neq_e_size.
+          eapply equiv_neq_e_digits.
           symmetry; assumption.
           lia.
       +
@@ -265,14 +265,14 @@ Section IEEE754_normalization.
         *
           clear - EQ1 M1 E1 M E.
           enough (FPexp f > FPexp f1) by lia.
-          eapply equiv_neq_m_size.
+          eapply equiv_neq_m_digits.
           assumption.
           lia.
         *
           clear - EQ2 M2 E2 M E.
           enough (digits_m f > digits_m f2)%positive
             by (rewrite <-M, Pos2Z.id in M2; lia).
-          eapply equiv_neq_e_size.
+          eapply equiv_neq_e_digits.
           assumption.
           lia.
     -
@@ -326,10 +326,5 @@ Section IEEE754_normalization.
         symmetry; assumption.
   Qed.
   
-        
-      
-      
-    
- 
 End IEEE754_normalization.
 
