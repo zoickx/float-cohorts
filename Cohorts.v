@@ -768,3 +768,140 @@ Proof.
   assumption.
   lia.
 Qed.
+
+Open Scope positive_scope.
+
+Lemma inc_digits_m_exact (fp fp' : float_pair) :
+  fp' === fp ->
+  digits_m fp' = digits_m fp + 1 ->
+  inc_digits_m fp = fp'.
+Proof.
+  intros.
+  apply digits_m_unique.
+  rewrite inc_digits_m_res.
+  lia.
+  rewrite H.
+  apply inc_digits_m_equiv.
+Qed.
+
+Lemma dec_digits_m_exact (fp fp' : float_pair) :
+  fp' === fp ->
+  digits_m fp' + 1 = digits_m fp ->
+  dec_digits_m fp = Some fp'.
+Proof.
+  intros.
+  unfold dec_digits_m, inc_e.
+  break_match.
+  -
+    f_equal.
+    apply digits_m_unique.
+    cbn.
+    apply div2_opt_correct in Heqo.
+    unfold digits_m in *.
+    rewrite Heqo in H0.
+    replace 2 with (2 ^ 1) in H0 by reflexivity.
+    rewrite pos_size_mul_pow_two in H0.
+    lia.
+
+    rewrite H; clear H H0.
+    destruct fp as [m e].
+    cbn.
+    left.
+    split; [lia |].
+    replace (e + 1 - e)%Z with 1%Z by lia.
+    rewrite Z.pow_1_r.
+    cbn in Heqo.
+    apply div2_opt_correct in Heqo.
+    congruence.
+  -
+    symmetry in H0.
+    apply inc_digits_m_exact in H0; [| symmetry; assumption].
+    unfold inc_digits_m in H0.
+    destruct fp as (m, e).
+    cbn in H0, Heqo.
+    inversion H0; subst.
+    unfold div2_opt in Heqo.
+    rewrite Pos.mul_xO_r in Heqo.
+    discriminate.
+Qed.
+
+Lemma inc_digits_m_by_exact (fp fp' : float_pair) (ddm : positive) :
+  fp' === fp ->
+  digits_m fp' = digits_m fp + ddm ->
+  inc_digits_m_by fp ddm = fp'.
+Proof.
+  induction ddm using Pos.peano_ind.
+  -
+    apply inc_digits_m_exact.
+  -
+    intros.
+    unfold inc_digits_m_by, dec_e_by.
+    rewrite Pos.iter_succ.
+    fold inc_digits_m.
+    apply inc_digits_m_exact.
+    rewrite H.
+    symmetry.
+    apply inc_digits_m_by_equiv.
+    rewrite inc_digits_m_by_res.
+    lia.
+Qed.
+
+Lemma dec_digits_m_by_exact (fp fp' : float_pair) (ddm : positive) :
+  fp' === fp ->
+  digits_m fp' + ddm = digits_m fp ->
+  dec_digits_m_by fp ddm = Some fp'.
+Proof.
+  generalize dependent fp'.
+  induction ddm using Pos.peano_ind.
+  -
+    apply dec_digits_m_exact.
+  -
+    intros.
+    unfold dec_digits_m_by, inc_e_by.
+    rewrite Pos.iter_succ.
+    replace (Pos.iter (RingMicromega.map_option inc_e) (Some fp) ddm)
+      with (dec_digits_m_by fp ddm)
+      by reflexivity.
+    erewrite (IHddm (inc_digits_m fp')).
+    apply dec_digits_m_exact.
+    symmetry; apply inc_digits_m_equiv.
+    rewrite inc_digits_m_res; lia.
+    rewrite H; apply inc_digits_m_equiv.
+    rewrite inc_digits_m_res; lia.
+Qed.
+
+Lemma shift_digits_m_exact (fp fp' : float_pair) (ddm : Z) :
+  fp' === fp ->
+  (Z.pos (digits_m fp') = Z.pos (digits_m fp) + ddm)%Z ->
+  shift_digits_m fp ddm = Some fp'.
+Proof.
+  intros.
+  destruct ddm.
+  -
+    cbn.
+    f_equal.
+    apply digits_m_unique.
+    lia.
+    symmetry; assumption.
+  -
+    cbn.
+    f_equal.
+    apply inc_digits_m_by_exact.
+    assumption.
+    lia.
+  -
+    apply dec_digits_m_by_exact.
+    assumption.
+    lia.
+Qed.
+
+Lemma set_digits_m_exact (fp fp' : float_pair) (dm : positive) :
+  fp' === fp ->
+  digits_m fp' = dm ->
+  set_digits_m fp dm = Some fp'.
+Proof.
+  intros.
+  apply shift_digits_m_exact.
+  assumption.
+  lia.
+Qed.
