@@ -634,3 +634,137 @@ Proof.
   apply shift_digits_m_res in H.
   lia.
 Qed.
+
+Close Scope positive_scope.
+
+Lemma dec_e_exact (fp fp' : float_pair) :
+  fp' === fp ->
+  FPexp fp' = FPexp fp - 1 ->
+  dec_e fp = fp'.
+Proof.
+  intros.
+  cbn.
+  apply exponent_unique; [cbn; congruence |].
+  rewrite H.
+  apply dec_e_equiv.
+Qed.
+
+Lemma inc_e_exact (fp fp' : float_pair) :
+  fp' === fp ->
+  FPexp fp' = FPexp fp + 1 ->
+  inc_e fp = Some fp'.
+Proof.
+  intros.
+  cbn.
+  break_match.
+  +
+    f_equal.
+    apply exponent_unique.
+    cbn; congruence.
+    rewrite H.
+
+    destruct fp as [m e].
+    cbn.
+    left.
+    split; [lia |].
+    replace (e + 1 - e) with 1 by lia.
+    rewrite Z.pow_1_r.
+    cbn in Heqo.
+    apply div2_opt_correct in Heqo.
+    congruence.
+  +
+    exfalso.
+    cbn in H.
+    destruct H; try lia.
+    rewrite H0 in H.
+    replace (FPexp fp + 1 - FPexp fp) with 1 in H by lia.
+    cbn in H.
+    destruct H.
+    inversion H1.
+    rewrite H3 in Heqo.
+    clear - Heqo.
+    rewrite Pos.mul_xO_r in Heqo.
+    cbn in Heqo.
+    discriminate.
+Qed.
+
+Lemma dec_e_by_exact (fp fp' : float_pair) (de : positive) :
+  fp' === fp ->
+  FPexp fp' = FPexp fp - Z.pos de ->
+  dec_e_by fp de = fp'.
+Proof.
+  (* induction is not actually needed here *)
+  (* this is just the fastest way to destruct [de] as [1] or [Pos.succ] *)
+  induction de using Pos.peano_ind.
+  -
+    apply dec_e_exact.
+  -
+    intros.
+    unfold dec_e_by.
+    rewrite Pos.iter_succ.
+    apply dec_e_exact.
+    rewrite H.
+    symmetry.
+    apply dec_e_by_equiv.
+    rewrite dec_e_by_res.
+    lia.
+Qed.
+
+Lemma inc_e_by_exact (fp fp' : float_pair) (de : positive) :
+  fp' === fp ->
+  FPexp fp' = FPexp fp + Z.pos de ->
+  inc_e_by fp de = Some fp'.
+Proof.
+  generalize dependent fp'.
+  induction de using Pos.peano_ind.
+  -
+    apply inc_e_exact.
+  -
+    intros.
+    unfold inc_e_by.
+    rewrite Pos.iter_succ.
+    replace (Pos.iter (RingMicromega.map_option inc_e) (Some fp) de)
+      with (inc_e_by fp de)
+      by reflexivity.
+    erewrite (IHde (dec_e fp')).
+    apply inc_e_exact.
+    symmetry; apply dec_e_equiv.
+    rewrite dec_e_res; lia.
+    rewrite H; apply dec_e_equiv.
+    rewrite dec_e_res; lia.
+Qed.
+
+Lemma shift_e_exact (fp fp' : float_pair) (de : Z) :
+  fp' === fp ->
+  FPexp fp' = FPexp fp + de ->
+  shift_e fp de = Some fp'.
+Proof.
+  destruct de.
+  -
+    intros.
+    cbn.
+    f_equal.
+    apply exponent_unique.
+    lia.
+    symmetry; assumption.
+  -
+    apply inc_e_by_exact.
+  -
+    intros.
+    cbn.
+    f_equal.
+    apply dec_e_by_exact; assumption.
+Qed.
+
+Lemma set_e_exact (fp fp' : float_pair) (e : Z) :
+  fp' === fp ->
+  FPexp fp' = e ->
+  set_e fp e = Some fp'.
+Proof.
+  intros.
+  unfold set_e.
+  erewrite shift_e_exact.
+  reflexivity.
+  assumption.
+  lia.
+Qed.
