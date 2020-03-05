@@ -1,0 +1,11 @@
+* Reasoning behind the rewrite
+** Two major design flaws render this project unusable in many circumstanes:
+- The basic float type is defined with an integer mantissa. Two problems with that:
+  - Unnecessary complications around zero in lemmas in general
+  - Incompatibility with the constructors of the ~S754_float~ type
+    In a finite number mantissa is always positive; zero is rendered as a separate special constructor
+    This means that there cannot exist a direct correspondence between ~float~ and ~S754_finite~
+- The conversion functions are not modular enough
+  For example, there is no way of defining something like ~maximize_mantissa~
+** Since Coq 8.11, float support is integrated
+There is no need for to depend on Flocq anymore
