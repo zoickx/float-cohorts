@@ -1,5 +1,5 @@
 Require Export Relations Classes.EquivDec.
-Require Import FloatCohorts.Arith.
+From FloatCohorts Require Import Arith Tactics.
 
 Open Scope Z.
 
@@ -118,4 +118,136 @@ Proof.
   all: intros C.
   all: destruct C; destruct H.
   all: auto.
+Qed.
+
+Definition digits_m (fp : float_pair) : positive :=
+  Pos.size (FPnum fp).
+
+Lemma exponent_unique (fp1 fp2 : float_pair) :
+  FPexp fp1 = FPexp fp2 ->
+  fp1 === fp2 ->
+  fp1 = fp2.
+Proof.
+  destruct fp1 as [m1 e1], fp2 as [m2 e2].
+  cbn.
+  intros H E.
+  subst.
+  rewrite Z.sub_diag in *.
+  cbn in *.
+  repeat rewrite Pos.mul_1_r in *.
+  destruct E as [[H1 H2] | [H1 H2]].
+  all: inversion H2; subst; reflexivity.
+Qed.
+
+Lemma digits_m_unique (fp1 fp2 : float_pair) :
+  digits_m fp1 = digits_m fp2 ->
+  fp1 === fp2 ->
+  fp1 = fp2.
+Proof.
+  intros.
+  destruct (Z.eq_dec (FPexp fp1) (FPexp fp2)) as [| NE];
+    [apply exponent_unique; assumption |].
+  destruct fp1 as [m1 e1], fp2 as [m2 e2].
+  cbn in *.
+  destruct H0 as [[E M] | [E M]].
+  -
+    remember (e1 - e2) as ed.
+    destruct ed; try lia.
+    replace e1 with (e2 + Z.pos p) in * by lia.
+    clear Heqed E NE.
+
+    break_match; inversion M; clear M.
+    rewrite <-Pos2Z.inj_pow in Heqz.
+    inversion Heqz; clear Heqz.
+    rewrite <-H2 in H1.
+    rewrite H1 in H.
+    rewrite pos_size_mul_pow_two in H.
+    lia.
+  -
+    remember (e2 - e1) as ed.
+    destruct ed; try lia.
+    replace e2 with (e1 + Z.pos p) in * by lia.
+    clear Heqed E NE.
+    
+    break_match; inversion M; clear M.
+    rewrite <-Pos2Z.inj_pow in Heqz.
+    inversion Heqz; clear Heqz.
+    rewrite <-H2 in H1.
+    rewrite H1 in H.
+    rewrite pos_size_mul_pow_two in H.
+    lia.
+Qed.
+
+Lemma equiv_neq_m (fp1 fp2 : float_pair) :
+  fp1 === fp2 ->
+  (FPnum fp1 < FPnum fp2)%positive ->
+  FPexp fp1 > FPexp fp2.
+Proof.
+  intros.
+  destruct fp1 as (m1, e1), fp2 as (m2, e2).
+  cbn in *.
+  destruct H as [[E M] | [E M]].
+  -
+    break_match; inversion M.
+    destruct (e1 - e2) eqn:A; lia.
+  -
+    exfalso.
+    break_match; try lia.
+    inversion M.
+    rewrite H1 in H0.
+    clear - H0.
+    induction p; lia.
+Qed.
+
+Lemma equiv_neq_e (fp1 fp2 : float_pair) :
+  fp1 === fp2 ->
+  FPexp fp1 < FPexp fp2 ->
+  (FPnum fp1 > FPnum fp2)%positive.
+Proof.
+  intros.
+  destruct fp1 as (m1, e1), fp2 as (m2, e2).
+  cbn in *.
+  destruct H as [[E M] | [E M]].
+  -
+    break_match; inversion M.
+    destruct (e1 - e2) eqn:A; lia.
+  -
+    break_match; inversion M.
+    enough (1 < 2 ^ (e2 - e1)) by nia.
+    destruct (e2 - e1) eqn:A; try lia.
+    clear.
+    rename p0 into p.
+    rewrite <-(Z.pow_1_l (Z.pos p)) by lia.
+    apply Z.pow_lt_mono_l; lia.
+Qed.
+
+Lemma equiv_neq_m_digits (fp1 fp2 : float_pair) :
+  fp1 === fp2 ->
+  (digits_m fp1 < digits_m fp2)%positive ->
+  FPexp fp1 > FPexp fp2.
+Proof.
+  intros.
+  apply pos_size_monotone_inv in H0.
+  apply equiv_neq_m; assumption.
+Qed.
+
+Lemma equiv_neq_e_digits (fp1 fp2 : float_pair) :
+  fp1 === fp2 ->
+  FPexp fp1 < FPexp fp2 ->
+  (digits_m fp1 > digits_m fp2)%positive.
+Proof.
+  intros.
+  destruct (Pos.eq_dec (digits_m fp1) (digits_m fp2))
+    as [EQ | NEQ].
+  -
+    exfalso.
+    apply digits_m_unique in EQ; [| assumption].
+    subst.
+    lia.
+  -
+    apply equiv_neq_e in H0; [| assumption].
+    apply Pos.gt_lt, Pos.lt_le_incl in H0.
+    apply pos_size_monotone in H0.
+    unfold digits_m in *.
+    lia.
 Qed.
