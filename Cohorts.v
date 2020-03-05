@@ -398,7 +398,7 @@ Qed.
 Lemma dec_digits_m_res (fp : float_pair) :
   forall fp',
     dec_digits_m fp = Some fp' ->
-    digits_m fp' = digits_m fp - 1.
+    digits_m fp' + 1 = digits_m fp.
 Proof.
   unfold dec_digits_m, inc_e.
   intros.
@@ -427,7 +427,7 @@ Proof.
     lia.
 Qed.
 
-Lemma dec_digits_m_by_res' (fp : float_pair) (ddm : positive) :
+Lemma dec_digits_m_by_res (fp : float_pair) (ddm : positive) :
   forall fp',
     dec_digits_m_by fp ddm = Some fp' ->
     digits_m fp' + ddm = digits_m fp.
@@ -465,16 +465,6 @@ Proof.
     lia.
 Qed.
 
-Lemma dec_digits_m_by_res (fp : float_pair) (ddm : positive) :
-  forall fp',
-    dec_digits_m_by fp ddm = Some fp' ->
-    digits_m fp' = digits_m fp - ddm.
-Proof.
-  intros.
-  apply dec_digits_m_by_res' in H.
-  lia.
-Qed.
-
 Lemma shift_digits_m_res (fp : float_pair) (ddm : Z) :
   forall fp',
     shift_digits_m fp ddm = Some fp' ->
@@ -491,7 +481,7 @@ Proof.
     lia.
   -
     fold dec_digits_m_by in H.
-    apply dec_digits_m_by_res' in H.
+    apply dec_digits_m_by_res in H.
     rewrite <-Pos2Z.add_pos_neg.
     lia.
 Qed.
