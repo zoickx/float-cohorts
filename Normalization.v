@@ -134,14 +134,6 @@ Section IEEE754_normalization.
       rewrite Heqo0; constructor.
   Qed.
 
-  Instance normalize_pair_proper (fp : float_pair) :
-    Proper (equiv ==> equiv_if_Some) normalize_pair.
-  Proof.
-    intros fp1 fp2 FPE S1 S2.
-    repeat rewrite normalize_pair_equiv; try assumption.
-    rewrite FPE; reflexivity.
-  Qed.
-
   Lemma normal_pair_unique (fp1 fp2 : float_pair) :
     normal_pair fp1 = true ->
     normal_pair fp2 = true ->
@@ -201,10 +193,10 @@ Section IEEE754_normalization.
       lia.
   Qed.
     
-  Lemma normalize_pair_impossible (fp : float_pair) :
-    normalize_pair fp = None ->
-    forall fp', fp' === fp ->
-           normal_pair fp' = false.
+  Theorem normalize_pair_None_inv (fp : float_pair) :
+    normalize_pair fp = None
+    ->
+    forall fp', fp' === fp -> normal_pair fp' = false.
   Proof.
     intros.
     destruct (normal_pair fp') eqn:NP'; [| reflexivity].
@@ -215,19 +207,9 @@ Section IEEE754_normalization.
     repeat break_match; inversion_clear H.
     -
       rewrite Bool.andb_false_iff in *.
-      
-      assert (is_Some (set_e fp emin)) by (rewrite Heqo; constructor).
-      apply set_e_equiv in H.
-      rewrite Heqo in H.
-      inversion H; subst; clear H.
-      apply set_e_res in Heqo.
-      
-      assert (is_Some (set_digits_m fp (Z.to_pos prec))) by (rewrite Heqo0; constructor).
-      apply set_digits_m_equiv in H.
-      rewrite Heqo0 in H.
-      inversion H; subst; clear H.
-      apply set_digits_m_res in Heqo0.
-      
+      apply set_e_spec in Heqo; destruct Heqo.
+      apply set_digits_m_spec in Heqo0; destruct Heqo0.
+
       (* cleanup *)
       replace (Pos.size (FPnum f))
         with (digits_m f)
@@ -238,11 +220,11 @@ Section IEEE754_normalization.
         in *
         by reflexivity. (* poor man's fold 2 *)
       rename f into f1, f0 into f2, fp' into f.
-      assert (EQ1 : f === f1) by (rewrite H0, H3; reflexivity).
-      assert (EQ2 : f === f2) by (rewrite H0, H4; reflexivity).
-      clear H0 H3 H4 fp.
-      rename Heqo into E1, Heqb into M1, Heqo0 into M2.
+      assert (EQ1 : f === f1) by (rewrite H, H0; reflexivity).
+      assert (EQ2 : f === f2) by (rewrite H0, H2; reflexivity).
+      clear H H2 H0 fp.
       move f before f1; move f2 before f1.
+      rename H1 into E1, Heqb into M1, H3 into M2.
       
       destruct Heqb0 as [E2 | E2]; rewrite Z.leb_gt in *.
       +
@@ -292,9 +274,9 @@ Section IEEE754_normalization.
         rewrite Pos2Z.id in Heqo0.
         lia.
     -
-      apply set_e_None_inv with (fp':=fp') in Heqo; [lia | assumption].
+      apply set_e_None_inv with (fp':=fp') in Heqo;
+        [lia | assumption].
   Qed.
-  
 
   Theorem normalize_pair_spec (fp nfp : float_pair) :
     normalize_pair fp = Some nfp
@@ -330,7 +312,7 @@ Section IEEE754_normalization.
         assumption.
       +
         exfalso.
-        apply normalize_pair_impossible with (fp':=nfp) in NP.
+        apply normalize_pair_None_inv with (fp':=nfp) in NP.
         congruence.
         symmetry; assumption.
   Qed.
