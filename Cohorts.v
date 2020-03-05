@@ -766,3 +766,93 @@ Proof.
   assumption.
   lia.
 Qed.
+
+Theorem set_e_spec (fp fp' : float_pair) (e : Z) :
+  set_e fp e = Some fp'
+  <->
+  fp' === fp /\ FPexp fp' = e.
+Proof.
+  split; intros.
+  -
+    split.
+    +
+      enough (T : Some fp' === Some fp) by (inversion T; assumption).
+      rewrite <-H.
+      apply set_e_equiv; rewrite H; constructor.
+    +
+      eapply set_e_res; eassumption.
+  -
+    apply set_e_exact; intuition.
+Qed.
+
+Corollary set_e_None_inv (fp : float_pair) (e : Z) :
+  set_e fp e = None
+  ->
+  forall fp', fp' === fp -> (FPexp fp' < e)%Z.
+Proof.
+  intros.
+  apply Z.nle_gt.
+  intros C.
+  destruct (Z.eq_dec e (FPexp fp')).
+  -
+    enough (set_e fp e = Some fp') by congruence.
+    apply set_e_spec; intuition.
+  -
+    assert (H1 : (e < FPexp fp')%Z) by lia; clear C n.
+    destruct (set_e fp' e) as [fp''|] eqn:H2.
+    +
+      apply set_e_spec in H2.
+      enough (set_e fp e = Some fp'') by congruence.
+      apply set_e_spec.
+      intuition.
+      rewrite H3; assumption.
+    +
+      unfold set_e, shift_e in H2.
+      break_match; try discriminate.
+      lia.
+Qed.
+
+Theorem set_digits_m_spec (fp fp' : float_pair) (dm : positive) :
+  set_digits_m fp dm = Some fp'
+  <->
+  fp' === fp /\ digits_m fp' = dm.
+Proof.
+  split; intros.
+  -
+    split.
+    +
+      enough (T : Some fp' === Some fp) by (inversion T; assumption).
+      rewrite <-H.
+      apply set_digits_m_equiv; rewrite H; constructor.
+    +
+      eapply set_digits_m_res; eassumption.
+  -
+    apply set_digits_m_exact; intuition.
+Qed.
+
+Corollary set_digits_m_None_inv (fp : float_pair) (dm : positive) :
+  set_digits_m fp dm = None
+  ->
+  forall fp', fp' === fp -> dm < digits_m fp'.
+Proof.
+  intros.
+  apply Pos.lt_nle.
+  intros C.
+  destruct (Pos.eq_dec dm (digits_m fp')).
+  -
+    enough (set_digits_m fp dm = Some fp') by congruence.
+    apply set_digits_m_spec; intuition.
+  -
+    assert (H1 : digits_m fp' < dm) by lia; clear C n.
+    destruct (set_digits_m fp' dm) as [fp''|] eqn:H2.
+    +
+      apply set_digits_m_spec in H2.
+      enough (set_digits_m fp dm = Some fp'') by congruence.
+      apply set_digits_m_spec.
+      intuition.
+      rewrite H3; assumption.
+    +
+      unfold set_digits_m, shift_digits_m, shift_e in H2.
+      break_match; try discriminate.
+      lia.
+Qed.
