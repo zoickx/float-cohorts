@@ -200,7 +200,7 @@ Section IEEE754_normalization.
       rewrite Z2Pos.id by assumption.
       lia.
   Qed.
-
+    
   Lemma normalize_pair_impossible (fp : float_pair) :
     normalize_pair fp = None ->
     forall fp', fp' === fp ->
@@ -277,15 +277,24 @@ Section IEEE754_normalization.
           lia.
     -
       rewrite Z.leb_gt in *.
-
-      assert (is_Some (set_e fp emin)) by (rewrite Heqo; constructor).
-      apply set_e_equiv in H.
-      rewrite Heqo in H.
-      inversion H; subst; clear H.
-      apply set_e_res in Heqo.
-      admit.
+      apply set_e_spec in Heqo; destruct Heqo.
+      apply set_digits_m_None_inv with (fp':=fp') in Heqo0; [ |assumption].
+      unfold digits_m in *.
+      destruct NP' as [[M E] | [M E]].
+      +
+        replace fp' with f in *.
+        lia.
+        apply exponent_unique.
+        lia.
+        rewrite H, H0; reflexivity.
+      +
+        rewrite <-M in Heqo0.
+        rewrite Pos2Z.id in Heqo0.
+        lia.
     -
-  Admitted.
+      apply set_e_None_inv with (fp':=fp') in Heqo; [lia | assumption].
+  Qed.
+  
 
   Theorem normalize_pair_spec (fp nfp : float_pair) :
     normalize_pair fp = Some nfp
